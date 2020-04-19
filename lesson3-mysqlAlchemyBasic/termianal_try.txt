@@ -1,0 +1,7 @@
+$ python3
+>>> from flask_hello_app import Person, db
+>>> Person.query.all()
+>>> Person.query.first()
+>>> query = Person.query.filter(Person.name == 'Amy')
+>>> query.first()
+>>> query.all()
