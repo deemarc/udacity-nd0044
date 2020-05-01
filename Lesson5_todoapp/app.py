@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://udacitystudios@localhost:5432/example'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:deemarco159@localhost:5432/todoapp'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -12,24 +12,26 @@ class Todo(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   description = db.Column(db.String(), nullable=False)
 
+db.create_all()
+
 """
 # first try without database
 """
 
-@app.route('/')
-def index():
-    data_todo = [
-        {'description': 'Todo 1'},
-        {'description': 'Todo 2'},
-        {'description': 'Todo 3'}
-    ]
-    return render_template('index.html', data = data_todo)
-
-# """
-# # second try with database
-# """
-
 # @app.route('/')
 # def index():
-#     data_todo = Todo.query.all()
+#     data_todo = [
+#         {'description': 'Todo 1'},
+#         {'description': 'Todo 2'},
+#         {'description': 'Todo 3'}
+#     ]
 #     return render_template('index.html', data = data_todo)
+
+"""
+# second try with database
+"""
+
+@app.route('/')
+def index():
+    data_todo = Todo.query.all()
+    return render_template('index.html', data = data_todo)
