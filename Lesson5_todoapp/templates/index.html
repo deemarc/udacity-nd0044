@@ -9,8 +9,8 @@
     </head>
     <body>
         <form id="form">
-            <input type="text", id="description", name="description"/>
-            <input type="sumit", value="Create"/>
+            <input type="text" id="description" name="description" />
+            <input type="submit" value="Create" />
         </form>
         <div id="error" class="hidden"> Something went wrong!</div>
         <ul id="todos">
@@ -21,7 +21,7 @@
         <script>
             document.getElementById('form').onsubmit = function(e) {
                 e.preventDefault();
-                fetch('/todos/create', {
+                fetch('/ajax/todos/create', {
                     method:'POST',
                     headers:{
                         "Content-Type":"application/json"
@@ -38,12 +38,12 @@
                     const liItem = document.createElement('LI');
                     liItem.innerHTML = jsonResponse['description'];
                     document.getElementById('todos').appendChild(liItem); 
-                    document.getElementById('error').class = 'hidden';
+                    document.getElementById('error').className = 'hidden';
                 }).catch(function(){
-                    document.getElementById('error').class = '';
+                    document.getElementById('error').className = '';
                 })
                   
             }
-        </script>
+        </script> 
     </body>
 </html>
