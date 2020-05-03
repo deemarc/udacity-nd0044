@@ -1,0 +1,130 @@
+<html>
+    <head>
+        <title>Todo App</title>
+        <style>
+            .hidden {
+                display: none;
+            }
+            ul { 
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                width: 150px;
+            }
+            li {
+                clear: both;
+            }
+            li button {
+                -webkit-appearance: none;
+                border: none;
+                outline: none;
+                color: red;
+                background-color: transparent;
+                float: right;
+                cursor: pointer;
+                font-size: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <form id="form">
+            <input type="text" id="description" name="description" />
+            <input type="submit" value="Create" />
+        </form>
+        <div id="error" class="hidden"> Something went wrong!</div>
+        <ul id="todos">
+            {% for d in data %}
+            <li>
+                <input class="check-completed" data-id="{{ d.id }}" type="checkbox" {% if d.completed %} checked {% endif %}/>
+                {{ d.description }}
+                <button class="delete-button" data-id="{{ d.id }}">&cross;</button>
+            </li>
+            {% endfor %}
+        </ul>
+        <script>
+            const checkboxes = document.querySelectorAll('.check-completed');
+            const deleteBtns = document.querySelectorAll('.delete-button');
+            for (let i = 0; i < deleteBtns.length; i++) {
+                const btn = deleteBtns[i];
+                btn.onclick = function(e) {
+                const todoId = e.target.dataset['id'];
+                fetch('/todos/' + todoId, {
+                    method: 'DELETE'
+                })
+                .then(function() {
+                        document.getElementById('error').className = 'hidden';
+                        const item = e.target.parentElement;
+                        item.remove();
+                    })
+                    .catch(function() {
+                        document.getElementById('error').className = '';
+                    })
+                }
+            }
+            for (let i = 0; i<checkboxes.length; i++){
+                const checkbox = checkboxes[i];
+                checkbox.onchange = function(e){
+                    console.log('event',e);
+                    const newCompleted = e.target.checked;
+                    const todoId = e.target.dataset['id']
+                    fetch('/todos/'+todoId +'/set-completed', {
+                        method:'POST',
+                        headers:{
+                            "Content-Type":"application/json"
+                        },
+                        body: JSON.stringify(
+                            {
+                                'completed': newCompleted
+                            }
+                        )
+                    })
+                    .then(function() {
+                        document.getElementById('error').className = 'hidden';
+                    })
+                    .catch(function() {
+                        document.getElementById('error').className = '';
+                    })
+                }
+            }
+            document.getElementById('form').onsubmit = function(e) {
+                e.preventDefault();
+                fetch('/todos/create', {
+                    method:'POST',
+                    headers:{
+                        "Content-Type":"application/json"
+                    },
+                    body: JSON.stringify(
+                        {
+                            'description': document.getElementById("description").value
+                        }
+                    )
+                }).then(function(response){
+                    return response.json();
+                }).then(function(jsonResponse){
+                    // console.log(jsonResponse);
+                    const li = document.createElement('li');
+                    const checkbox = document.createElement('input');
+                    checkbox.className = 'check-completed';
+                    checkbox.type = 'checkbox';
+                    checkbox.setAttribute('data-id', jsonResponse.id);
+                    li.appendChild(checkbox);
+
+                    const text = document.createTextNode(' ' + jsonResponse.description);
+                    li.appendChild(text);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-button';
+                    deleteBtn.setAttribute('data-id', jsonResponse.id);
+                    deleteBtn.innerHTML = '&cross;';
+                    li.appendChild(deleteBtn);
+
+                    document.getElementById('todos').appendChild(li);
+                    document.getElementById('error').className = 'hidden';
+                }).catch(function(){
+                    document.getElementById('error').className = '';
+                })
+                  
+            }
+        </script> 
+    </body>
+</html>
