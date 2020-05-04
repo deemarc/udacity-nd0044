@@ -16,22 +16,47 @@ class Todo(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   description = db.Column(db.String(), nullable=False)
   completed = db.Column(db.Boolean, nullable=False, default=False)
-  todolist_id = db.Column(db.Integer, db.ForeignKey('todo_lists.id'), nullable=False)
+  todolist_id = db.Column(db.Integer, db.ForeignKey('todo_lists.id', ondelete='cascade'), nullable=False)
 
 class TodoList(db.Model):
   __tablename__ = 'todo_lists'
   id = db.Column(db.Integer, primary_key=True)
   name = db.Column(db.String(), nullable=False)
-  todos = db.relationship('Todo', backref='todolist', lazy=True)
+  todos = db.relationship('Todo', backref='todolist', lazy=True, cascade="save-update, merge, delete")
 
 @app.route('/todolist/<todolist_id>')
 def get_list_todos(todolist_id):
-    data_todo = Todo.query.filter_by(todolist_id=todolist_id).order_by('id').all()
-    return render_template('index.html', data = data_todo)
+    todos = Todo.query.filter_by(todolist_id=todolist_id).order_by('id').all()
+    todos_lists = TodoList.query.order_by('id').all()
+    active_todolist = TodoList.query.filter_by(id=todolist_id).first()
+    return render_template('index.html', todos = todos, active_todolist= active_todolist, todos_lists = todos_lists)
 
 @app.route('/')
 def index():
   return redirect(url_for('get_list_todos', todolist_id=1))
+
+@app.route('/todolist/create', methods=['POST'])
+def create_todoList():
+  error = False
+  body = {}
+  try:
+    name = request.get_json()['name']
+    todo_list = TodoList(name=name)
+    db.session.add(todo_list)
+    db.session.commit()
+    body['id'] = todo_list.id
+    body['name'] = todo_list.name
+  except:
+    error = True
+    db.session.rollback()
+    print(sys.exc_info())
+  finally:
+    db.session.close()
+  if error:
+    abort (400)
+  else:
+    return jsonify(body)
+
 
 @app.route('/todos/create', methods=['POST'])
 def create_todo():
@@ -39,7 +64,12 @@ def create_todo():
   body = {}
   try:
     description = request.get_json()['description']
-    todo = Todo(description=description)
+    todolistId = request.get_json()['todolist_id']
+    if not TodoList.query.filter_by(id=todolistId).first():
+      abort(404, 'Given todo list id cannot be found')
+    
+    todo = Todo(description=description,todolist_id=todolistId)
+    
     db.session.add(todo)
     db.session.commit()
     body['id'] = todo.id
@@ -52,7 +82,7 @@ def create_todo():
   finally:
     db.session.close()
   if error:
-    abort (400)
+    abort(400)
   else:
     return jsonify(body)
 
@@ -75,6 +105,22 @@ def set_complete_todo(todo_id):
   else:
     return redirect(url_for('index'))
 
+@app.route('/todolist/<todoList_id>', methods=['DELETE'])
+def delete_todoList(todoList_id):
+  error = False
+  try:
+    TodoList.query.filter_by(id=todoList_id).delete()
+    db.session.commit()
+  except:
+    error = True
+    db.session.rollback()
+    print(sys.exc_info())
+  finally:
+    db.session.close()
+  if error:
+    abort (400)
+  else:
+    return jsonify({ 'success': True })
 
 @app.route('/todos/<todo_id>', methods=['DELETE'])
 def delete_todo_item(todo_id):
@@ -92,3 +138,4 @@ def delete_todo_item(todo_id):
     abort (400)
   else:
     return jsonify({ 'success': True })
+
